@@ -1,0 +1,30 @@
+# Environment variables (API keys)
+.env
+*.env
+
+# Local SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Generated local outputs
+outputs/
+*.log
+supermarket_action_plan.txt
+
+# Editor & OS settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
