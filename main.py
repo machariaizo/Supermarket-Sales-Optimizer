@@ -200,7 +200,7 @@ OUTPUT JSON:
     except json.JSONDecodeError:
         raise ValueError("❌ Stage 1 returned invalid JSON.")
 
-============================================================
+# ============================================================
 # 5. RAG RETRIEVAL
 # ============================================================
 
@@ -234,3 +234,161 @@ def retrieve_inventory(analysis, db_path=DB_PATH):
             rows = conn.execute("SELECT * FROM inventory ORDER BY expiry_days ASC").fetchall()
         
         return [dict(row) for row in rows]
+# ============================================================
+# 6. STAGE 2 AI — ACTION PLAN
+# ============================================================
+
+def stage_2(analysis, retrieved_products):
+    """Generate action plan from analysis and retrieved products."""
+    
+    prompt = f"""
+ROLE: You are an AI Supermarket Merchandising and Pricing Specialist.
+
+TASK: Create a practical action plan to reduce losses from products approaching expiry.
+
+CONTEXT:
+STAGE 1 ANALYSIS: {json.dumps(analysis, indent=2)}
+RETRIEVED PRODUCTS: {json.dumps(retrieved_products, indent=2)}
+
+CONSTRAINTS:
+1. Recommend ONLY products in the retrieved list.
+2. Never invent products or prices.
+3. 1-2 days = HIGH urgency (max 40% discount)
+4. 3-7 days = MEDIUM urgency (max 20% discount)
+5. >7 days = LOW urgency (max 10% discount)
+6. Show exact discount math: Original × discount% = discount amount
+7. Keep response under 150 words.
+8. Use bullet points.
+9. If no products match, say so.
+
+OUTPUT FORMAT:
+1. Diagnosis
+2. Placement Strategy
+3. Pricing & Bundles
+"""
+    
+    return safe_generate_content(prompt)
+# ============================================================
+# 6. STAGE 2 AI — ACTION PLAN
+# ============================================================
+
+def stage_2(analysis, retrieved_products):
+    """Generate action plan from analysis and retrieved products."""
+    
+    prompt = f"""
+ROLE: You are an AI Supermarket Merchandising and Pricing Specialist.
+
+TASK: Create a practical action plan to reduce losses from products approaching expiry.
+
+CONTEXT:
+STAGE 1 ANALYSIS: {json.dumps(analysis, indent=2)}
+RETRIEVED PRODUCTS: {json.dumps(retrieved_products, indent=2)}
+
+CONSTRAINTS:
+1. Recommend ONLY products in the retrieved list.
+2. Never invent products or prices.
+3. 1-2 days = HIGH urgency (max 40% discount)
+4. 3-7 days = MEDIUM urgency (max 20% discount)
+5. >7 days = LOW urgency (max 10% discount)
+6. Show exact discount math: Original × discount% = discount amount
+7. Keep response under 150 words.
+8. Use bullet points.
+9. If no products match, say so.
+
+OUTPUT FORMAT:
+1. Diagnosis
+2. Placement Strategy
+3. Pricing & Bundles
+"""
+    
+    return safe_generate_content(prompt)
+
+
+# ============================================================
+# 7. SAVE ACTION PLAN
+# ============================================================
+
+def save_action_plan(plan_text, filename=OUTPUT_FILE):
+    """Save the action plan to a file."""
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    with open(filename, "w", encoding="utf-8") as file:
+        file.write("=" * 70 + "\n")
+        file.write("     🛒 SUPERMARKET ACTION PLAN\n")
+        file.write(f"     Generated: {timestamp}\n")
+        file.write("=" * 70 + "\n\n")
+        file.write(plan_text)
+        file.write("\n\n" + "=" * 70 + "\n")
+    
+    print(f"\n💾 Saved to: {filename}")
+# ============================================================
+# 8. CHAT FUNCTION
+# ============================================================
+
+def chat():
+    """Interactive chatbot loop."""
+    
+    print("\n" + "=" * 60)
+    print(" HELLO, WELCOME TO 🛒SUPERMARKET SALES OPTIMIZER")
+    print("=" * 60)
+    print("\n💡 Ask about stock, expiry, discounts, or promotions.")
+    print("💡 Type 'view' to see inventory.")
+    print("💡 Type 'add' to add a product.")
+    print("💡 Type 'exit' to quit.\n")
+    
+    create_knowledge_base()
+    
+    while True:
+        user_input = input("\n🧑 You: ").strip().lower()
+        
+        if not user_input:
+            continue
+        
+        if user_input in ("exit", "quit"):
+            print("👋 Goodbye! thank you for your time")
+            break
+        
+        if user_input == "view":
+            view_inventory()
+            continue
+        
+        if user_input == "add":
+            add_product()
+            continue
+        try:
+            print("🤔 [Stage 1] Analyzing...")
+            analysis = stage_1(user_input)
+            
+            # Guardrail
+            if analysis.get("validity") == "Irrelevant_Input":
+                print("👋 Please ask about supermarket stock, expiry, pricing, or promotions.")
+                continue
+            
+            # RAG
+            print("🔍 [RAG] Searching knowledge base...")
+            retrieved = retrieve_inventory(analysis)
+            print(f"✅ Found {len(retrieved)} products.")
+            
+            # Stage 2
+            print("📝 [Stage 2] Creating action plan...")
+            plan = stage_2(analysis, retrieved)
+            
+            # Display
+            print("\n" + "=" * 60)
+            print("                 ACTION PLAN")
+            print("=" * 60)
+            print(plan)
+            print("=" * 60)
+            
+            # Save
+            save_action_plan(plan)
+            
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            print("Please try again.")
+
+
+# ============================================================
+# 9. MAIN
+# ============================================================
