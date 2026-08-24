@@ -152,3 +152,52 @@ def add_product(db_path=DB_PATH):
     print(f"✅ '{product}' added successfully!")
 
 
+# ============================================================
+# 4. STAGE 1 AI — R-T-C-C-O
+# ============================================================
+
+def stage_1(user_input):
+    """Analyze user input and generate structured JSON."""
+    
+    prompt = f"""
+ROLE: You are an AI Supermarket Inventory Assistant.
+
+TASK: Convert the user's supermarket question into structured JSON.
+
+CONTEXT: The supermarket knowledge base contains product names, categories, prices, stock, expiry days, storage, and recommended actions.
+
+USER QUESTION: {user_input}
+
+CONSTRAINTS:
+1. Return ONLY valid JSON.
+2. Do not use markdown or code fences.
+3. If unrelated to supermarket, set validity to "Irrelevant_Input".
+4. For expiry questions use "expiry_check".
+5. For stock questions use "stock_check".
+6. For discount questions use "discount_recommendation".
+7. For promotion questions use "promotion".
+8. If no expiry period specified, use 7 days.
+9. High urgency = 1-2 days, Medium = 3-7 days, Low = >7 days.
+
+OUTPUT JSON:
+{{
+    "validity": "Relevant_Input",
+    "intent": "expiry_check",
+    "product": null,
+    "category": null,
+    "urgency": "High",
+    "max_expiry_days": 7,
+    "needs_discount": true,
+    "timestamp": "{datetime.now().isoformat()}"
+}}
+"""
+    
+    raw_response = safe_generate_content(prompt)
+    raw_response = raw_response.replace("json", "").replace("", "").strip()
+    
+    try:
+        return json.loads(raw_response)
+    except json.JSONDecodeError:
+        raise ValueError("❌ Stage 1 returned invalid JSON.")
+
+
