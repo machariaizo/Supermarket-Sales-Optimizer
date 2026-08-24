@@ -200,4 +200,37 @@ OUTPUT JSON:
     except json.JSONDecodeError:
         raise ValueError("❌ Stage 1 returned invalid JSON.")
 
+============================================================
+# 5. RAG RETRIEVAL
+# ============================================================
 
+def retrieve_inventory(analysis, db_path=DB_PATH):
+    """Retrieve products from knowledge base based on analysis."""
+    
+    max_expiry_days = analysis.get("max_expiry_days", 7)
+    product = analysis.get("product")
+    category = analysis.get("category")
+    intent = analysis.get("intent")
+    
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        
+        if product:
+            rows = conn.execute(
+                "SELECT * FROM inventory WHERE product LIKE ? ORDER BY expiry_days ASC",
+                (f"%{product}%",)
+            ).fetchall()
+        elif category:
+            rows = conn.execute(
+                "SELECT * FROM inventory WHERE category LIKE ? ORDER BY expiry_days ASC",
+                (f"%{category}%",)
+            ).fetchall()
+        elif intent == "expiry_check":
+            rows = conn.execute(
+                "SELECT * FROM inventory WHERE expiry_days <= ? ORDER BY expiry_days ASC",
+                (max_expiry_days,)
+            ).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM inventory ORDER BY expiry_days ASC").fetchall()
+        
+        return [dict(row) for row in rows]
