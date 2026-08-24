@@ -22,7 +22,7 @@ client = genai.Client(api_key=API_KEY)
 
 MODEL_POOL = [
     "gemini-3.6-flash",
-    "gemini-1.5-flash"
+    "gemini-3.5-flash"
 ]
 
 DB_PATH = "inventory.db"
